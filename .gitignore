@@ -1,0 +1,9 @@
+.idea
+build
+.gradle
+out
+adProviders.txt
+tempAd.txt
+top-1m.csv
+top_sites.zip
+topSitesProviders.txt
