@@ -22,7 +22,7 @@ public class TopSiteProvider {
         logger.info("Enterting getSet() method");
         File topSitesFileArchive = new File("top_sites.zip");
         logger.info("Starting copy .zip file into " + topSitesFileArchive.getAbsolutePath());
-//        FileUtils.copyURLToFile(new URL(ALEXA_TOP_SITES), topSitesFileArchive, 10000000, 10000000);
+        FileUtils.copyURLToFile(new URL(ALEXA_TOP_SITES), topSitesFileArchive, 10000000, 10000000);
         logger.info("File downloaded");
         logger.info("Starting unzip file");
         File topListFile = unZipFile(topSitesFileArchive);

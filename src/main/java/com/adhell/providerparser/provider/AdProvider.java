@@ -14,13 +14,12 @@ import java.util.logging.Logger;
 public class AdProvider {
     private static final Logger logger = Logger.getLogger(AdProvider.class.getCanonicalName());
     public static List<String> adProviderUrlList;
-    public static File file = new File("");
 
     public static void init() {
         adProviderUrlList = new ArrayList<>();
         adProviderUrlList.add("https://adaway.org/hosts.txt");
         adProviderUrlList.add("http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext");
-//        adProviderUrlList.add("http://hosts-file.net/ad_servers.txt");
+//        adProviderUrlList.add("http://hosts-file.net/ad_servers.txt"); // Too big
     }
 
     public static Set<String> getAdProvidersSet() {
@@ -60,17 +59,6 @@ public class AdProvider {
 
     public static void writeFile() throws IOException {
         Set<String> fullAdProvidersSet = getAdProvidersSet();
-        Set<String> toDelete = new HashSet<>();
-
-        for (String url1 : fullAdProvidersSet) {
-            for (String url2 : fullAdProvidersSet) {
-                if (url1.contains(url2) && !url1.equals(url2)) {
-                    toDelete.add(url1);
-                }
-            }
-        }
-        fullAdProvidersSet.removeAll(toDelete);
-        logger.info("toDelete: " + toDelete.size());
         StringBuilder stringBuilder = new StringBuilder();
         for (String url1 : fullAdProvidersSet) {
             stringBuilder

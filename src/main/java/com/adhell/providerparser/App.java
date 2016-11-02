@@ -2,6 +2,7 @@ package com.adhell.providerparser;
 
 import com.adhell.providerparser.provider.AdProvider;
 import com.adhell.providerparser.provider.TopSiteProvider;
+import org.apache.commons.validator.routines.DomainValidator;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -23,37 +24,55 @@ public class App {
             Set<String> adProvidersSet = new HashSet<>();
             try (BufferedReader br = new BufferedReader(new FileReader(new File("adProvidersMain.txt")))) {
                 for (String line; (line = br.readLine()) != null; ) {
-                    adProvidersSet.add(line);
+                    adProvidersSet.add(line.trim());
                 }
             }
             List<String> adProviderUrlList = new ArrayList<>();
             List<String> topSitesList = TopSiteProvider.getList();
+            HashSet<String> adTop = new HashSet<>();
             logger.info("Starting search for popular ad providers");
             for (String topSiteUrl : topSitesList) {
                 int count = 0;
                 for (String adProviderUrl : adProvidersSet) {
-                    if (adProviderUrl.endsWith(topSiteUrl) && !adProviderUrlList.contains(adProviderUrl)) {
+                    if (
+                            (adProviderUrl.endsWith("." + topSiteUrl) || adProviderUrl.equals(topSiteUrl))
+                                    && !adProviderUrlList.contains(adProviderUrl)
+                            ) {
                         adProviderUrlList.add(adProviderUrl);
                         count++;
                     }
                 }
-                if (count > 15) {
-                    adProviderUrlList.removeIf(i -> i.contains("." + topSiteUrl));
-                    adProviderUrlList.add(topSiteUrl);
+                if (count > 20) {
+                    adTop.add(topSiteUrl);
                 }
             }
-
+            adProvidersSet.removeAll(adProviderUrlList);
+            for (String url : adTop) {
+                adProviderUrlList.removeIf(i -> i.endsWith("." + url));
+                adProviderUrlList.add(url);
+            }
             StringBuilder stringBuilder = new StringBuilder();
             for (String url1 : adProviderUrlList) {
-                stringBuilder
-                        .append(url1)
-                        .append(System.lineSeparator());
+                if (DomainValidator.getInstance().isValid(url1)) {
+                    stringBuilder
+                            .append("\"")
+                            .append(url1)
+                            .append("\",")
+                            .append(System.lineSeparator());
+                }
+            }
+            for (String url1 : adProvidersSet) {
+                if (DomainValidator.getInstance().isValid(url1)) {
+                    stringBuilder
+                            .append("\"")
+                            .append(url1)
+                            .append("\",")
+                            .append(System.lineSeparator());
+                }
             }
             PrintWriter out = new PrintWriter("ad_providers_final_list.txt");
             out.println(stringBuilder);
             out.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
