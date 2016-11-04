@@ -22,7 +22,7 @@ public class AdProvider {
 //        adProviderUrlList.add("http://hosts-file.net/ad_servers.txt"); // Too big
     }
 
-    public static Set<String> getAdProvidersSet() {
+    private static Set<String> getAdProvidersSet() {
         Set<String> adProvidersSet = new HashSet<String>();
         for (String url : adProviderUrlList) {
             Set<String> tempSet = loadUrlSet(url);
@@ -43,7 +43,7 @@ public class AdProvider {
             Set<String> urlSet = new HashSet<>();
             String line;
             while ((line = bufferedReader.readLine()) != null) {
-                line = line.replace("127.0.0.1", "").trim();
+                line = line.replace("127.0.0.1", "").trim().toLowerCase();
                 if (DomainValidator.getInstance().isValid(line)) {
                     urlSet.add(line);
                 }
@@ -57,7 +57,12 @@ public class AdProvider {
         return null;
     }
 
-    public static void writeFile() throws IOException {
+    public static File writeFile(String filepath, String fileName, boolean rewrite) throws IOException {
+        String path = filepath + File.separator + fileName;
+        File file = new File(path);
+        if (file.exists() && !rewrite) {
+            return file;
+        }
         Set<String> fullAdProvidersSet = getAdProvidersSet();
         StringBuilder stringBuilder = new StringBuilder();
         for (String url1 : fullAdProvidersSet) {
@@ -65,8 +70,22 @@ public class AdProvider {
                     .append(url1)
                     .append(System.lineSeparator());
         }
-        PrintWriter out = new PrintWriter("adProvidersMain.txt");
+        PrintWriter out = new PrintWriter(path);
         out.println(stringBuilder);
         out.close();
+        return file;
+    }
+
+    public static Set<String> loadAdUrlsFromFile(String filePath) throws IOException {
+        Set<String> topUrlsSet = new HashSet<>();
+        BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath));
+        String line;
+        while ((line = bufferedReader.readLine()) != null) {
+            line = line.trim();
+            if (DomainValidator.getInstance().isValid(line)) {
+                topUrlsSet.add(line);
+            }
+        }
+        return topUrlsSet;
     }
 }

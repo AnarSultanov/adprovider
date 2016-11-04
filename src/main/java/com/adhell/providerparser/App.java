@@ -1,12 +1,12 @@
 package com.adhell.providerparser;
 
 import com.adhell.providerparser.provider.AdProvider;
-import com.adhell.providerparser.provider.TopSiteProvider;
-import org.apache.commons.validator.routines.DomainValidator;
+import com.adhell.providerparser.provider.MyUtils;
+import com.adhell.providerparser.provider.PopularUrlSorter;
+import com.adhell.providerparser.provider.TopSitesHelper;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.HashSet;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -16,63 +16,44 @@ public class App {
 
 
     public static void main(String[] args) {
+
+        String linkToTopSites = "http://s3.amazonaws.com/alexa-static/top-1m.csv.zip";
+        String pathToAdHellFolder = "/home/raiym/hdd/AdhellTest";
+        String zipFileName = "1-mln.zip";
+        String topSitesFileName = "top_sites_file.txt";
+        String adProvidersFileName = "ad_providers.txt";
+        String sortedUrlListFileName = "sorted_url_list.txt";
+        String reachableUrlListFileName = "reachable_url_list.txt";
+        String listToBlock = "list_to_block.txt";
+
+        boolean rewrite = false;
         logger.info("Starting application");
         System.setProperty("http.agent", "Chrome");
         try {
+            logger.info("Getting ad provider url list");
             AdProvider.init();
-            AdProvider.writeFile();
-            Set<String> adProvidersSet = new HashSet<>();
-            try (BufferedReader br = new BufferedReader(new FileReader(new File("adProvidersMain.txt")))) {
-                for (String line; (line = br.readLine()) != null; ) {
-                    adProvidersSet.add(line.trim());
-                }
-            }
-            List<String> adProviderUrlList = new ArrayList<>();
-            List<String> topSitesList = TopSiteProvider.getList();
-            HashSet<String> adTop = new HashSet<>();
-            logger.info("Starting search for popular ad providers");
-            for (String topSiteUrl : topSitesList) {
-                int count = 0;
-                for (String adProviderUrl : adProvidersSet) {
-                    if (
-                            (adProviderUrl.endsWith("." + topSiteUrl) || adProviderUrl.equals(topSiteUrl))
-                                    && !adProviderUrlList.contains(adProviderUrl)
-                            ) {
-                        adProviderUrlList.add(adProviderUrl);
-                        count++;
-                    }
-                }
-                if (count > 20) {
-                    adTop.add(topSiteUrl);
-                }
-            }
-            adProvidersSet.removeAll(adProviderUrlList);
-            for (String url : adTop) {
-                adProviderUrlList.removeIf(i -> i.endsWith("." + url));
-                adProviderUrlList.add(url);
-            }
-            StringBuilder stringBuilder = new StringBuilder();
-            for (String url1 : adProviderUrlList) {
-                if (DomainValidator.getInstance().isValid(url1)) {
-                    stringBuilder
-                            .append("\"")
-                            .append(url1)
-                            .append("\",")
-                            .append(System.lineSeparator());
-                }
-            }
-            for (String url1 : adProvidersSet) {
-                if (DomainValidator.getInstance().isValid(url1)) {
-                    stringBuilder
-                            .append("\"")
-                            .append(url1)
-                            .append("\",")
-                            .append(System.lineSeparator());
-                }
-            }
-            PrintWriter out = new PrintWriter("ad_providers_final_list.txt");
-            out.println(stringBuilder);
-            out.close();
+            AdProvider.writeFile(pathToAdHellFolder, adProvidersFileName, rewrite);
+            Set<String> adProvidersSet = AdProvider.loadAdUrlsFromFile(pathToAdHellFolder + File.separator + adProvidersFileName);
+            logger.info("End getting ad provider url list");
+
+            logger.info("Starting download top sites");
+            File topSitesZipFile = TopSitesHelper.downloadFile(linkToTopSites, pathToAdHellFolder, zipFileName, rewrite);
+            File topSitesFile = TopSitesHelper.unZipFile(topSitesZipFile, pathToAdHellFolder + File.separator + topSitesFileName);
+            List<String> topSitesList = TopSitesHelper.loadTopListOfUrlsFromFile(topSitesFile);
+            logger.info("End downloading top sites");
+
+            logger.info("Starting sort urls");
+            File sortedUrlListFile = PopularUrlSorter.writePopularUrlList(topSitesList, adProvidersSet, pathToAdHellFolder + File.separator + sortedUrlListFileName, rewrite);
+            List<String> sortedPopularUrlList = PopularUrlSorter.loadAdUrlsFromFile(sortedUrlListFile.getAbsolutePath());
+            logger.info("Done sort urls");
+
+            logger.info("Start check reachable");
+            PopularUrlSorter.writeReachableList(sortedPopularUrlList, pathToAdHellFolder + File.separator + reachableUrlListFileName, rewrite);
+            logger.info("End check reachable");
+
+            logger.info("Starting prepare blocker list");
+            MyUtils.convert(pathToAdHellFolder + File.separator + reachableUrlListFileName, pathToAdHellFolder + File.separator + listToBlock, rewrite);
+            logger.info("Block list created");
         } catch (IOException e) {
             e.printStackTrace();
         }
